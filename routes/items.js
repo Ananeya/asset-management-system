@@ -1,6 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const authMiddleware = require("../middleware/authMiddleware");
+
+
 const Item = require("../models/Item");
 const {
   createItem,
@@ -15,8 +17,7 @@ const {
   filterItems, // Import filterItems function
 } = require("../controllers/itemController");
 
-// const itemRoutes = require("./routes/items"); // Import your item routes
-const authRoutes = require("./routes/auth"); // Import your auth routes
+const authRoutes = require("../routes/auth"); // Import your auth routes
 
 router.get("/search", authMiddleware, searchItems);
 router.get("/filter", authMiddleware, filterItems);

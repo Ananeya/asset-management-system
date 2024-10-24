@@ -4,18 +4,14 @@ const dotenv = require("dotenv");
 const cors = require("cors");
 const itemRoutes = require("./routes/items"); // Import your item routes
 
-// Use the item routes
-app.use("/api/items", itemRoutes);
-
+// Initialize Express app
+const app = express();
 
 // Load environment variables from .env
 dotenv.config();
 
 // Import the database connection logic
 const connectDB = require("./config/db");
-
-// Initialize Express app
-const app = express();
 
 // Connect to MongoDB
 connectDB();
@@ -35,3 +31,5 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+module.exports = app;

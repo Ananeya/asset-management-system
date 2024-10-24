@@ -3,12 +3,19 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User"); // Import the User model
 const authMiddleware = require("../middleware/authMiddleware");
+const router = express.Router();
 
 router.get("/items", authMiddleware, (req, res) => {
-  // Protected route logic
+  try {
+    // Logic for handling the request
+    res.status(200).send("Items route");
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).send("Server Error");
+  }
 });
 
-const router = express.Router();
+
 
 // Registration Route
 router.post("/register", async (req, res) => {
