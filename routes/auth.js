@@ -2,6 +2,11 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User"); // Import the User model
+const authMiddleware = require("../middleware/authMiddleware");
+
+router.get("/items", authMiddleware, (req, res) => {
+  // Protected route logic
+});
 
 const router = express.Router();
 
