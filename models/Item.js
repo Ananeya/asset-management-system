@@ -44,6 +44,10 @@ const ItemSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  status: {
+    type: String,
+    default: 'available', // or any default status you prefer
+  },
 });
 
 module.exports = mongoose.model("Item", ItemSchema);

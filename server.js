@@ -26,6 +26,9 @@ const authRoutes = require("./routes/auth");
 app.use("/api/auth", authRoutes);
 app.use("/api/items", itemRoutes); // Add item routes
 
+// Add this before app.listen
+console.log("JWT_SECRET is set:", !!process.env.JWT_SECRET);
+
 // Set up the server to listen on a port
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

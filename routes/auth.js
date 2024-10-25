@@ -35,19 +35,16 @@ router.post("/register", async (req, res) => {
       return res.status(400).json({ message: "User already exists" });
     }
 
-    // Hash the password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    // Create the user
+    // Create the user (password will be hashed by the pre-save hook)
     const newUser = new User({
       username,
       email,
-      password: hashedPassword,
+      password,
       role,
     });
 
     await newUser.save();
+    console.log("New user saved:", newUser);
 
     // Generate JWT Token
     const token = jwt.sign(
@@ -58,7 +55,7 @@ router.post("/register", async (req, res) => {
 
     res.status(201).json({ message: "User registered successfully", token });
   } catch (error) {
-    console.error(error);
+    console.error("Error during registration:", error);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -78,15 +75,21 @@ router.post("/login", async (req, res) => {
     // Check if the user exists
     const user = await User.findOne({ email });
     if (!user) {
-      console.log("User not found");
-      return res.status(400).json({ message: "Invalid credentials" }); // User doesn't exist
+      console.log(`User not found for email: ${email}`);
+      return res.status(400).json({ message: "Invalid credentials" });
     }
 
-    // Check if the password matches
-    const isMatch = await bcrypt.compare(password, user.password);
+    console.log("User found:", user);
+    console.log("Provided password:", password);
+    console.log("Stored hashed password:", user.password);
+
+    // Check if the password matches using the comparePassword method
+    const isMatch = await user.comparePassword(password);
+    console.log("Password match result:", isMatch);
+
     if (!isMatch) {
-      console.log("Password does not match");
-      return res.status(400).json({ message: "Invalid credentials" }); // Password incorrect
+      console.log(`Password does not match for user: ${email}`);
+      return res.status(400).json({ message: "Invalid credentials" });
     }
 
     // Generate JWT Token
@@ -103,5 +106,24 @@ router.post("/login", async (req, res) => {
   }
 });
 
+// Add this route for testing
+router.post("/check-user", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    console.log("User found:", user);
+    console.log("Provided password:", password);
+    console.log("Stored hashed password:", user.password);
+    const isMatch = await user.comparePassword(password);
+    console.log("Password match result:", isMatch);
+    res.json({ userExists: true, passwordCorrect: isMatch });
+  } catch (error) {
+    console.error("Error checking user:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
 
 module.exports = router;

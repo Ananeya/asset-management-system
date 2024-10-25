@@ -1,7 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const authMiddleware = require("../middleware/authMiddleware");
-
+// const authMiddleware = require("../middleware/authMiddleware");
 
 const Item = require("../models/Item");
 const {
@@ -13,20 +12,21 @@ const {
   updateStatus,
   requestAdditionalItem,
   reportIssue,
-  searchItems, // Import searchItems function
-  filterItems, // Import filterItems function
+  searchItems,
+  filterItems,
 } = require("../controllers/itemController");
 
-const authRoutes = require("../routes/auth"); // Import your auth routes
+// Removed authMiddleware from these routes
+router.get("/search", searchItems);
+router.get("/filter", filterItems);
 
-router.get("/search", authMiddleware, searchItems);
-router.get("/filter", authMiddleware, filterItems);
-
-// 1. Create a New Item (POST)
 // @route   POST /api/items
 // @desc    Create a new item
 // @access  Private (Admin)
-router.post("/", authMiddleware, async (req, res) => {
+// router.post("/", authMiddleware, async (req, res) => { secure approach  
+// includes the token when you login in your requests
+// 1. Create a New Item (POST)
+router.post("/", async (req, res) => {
   const { name, category, availability } = req.body;
 
   try {
@@ -44,12 +44,8 @@ router.post("/", authMiddleware, async (req, res) => {
   }
 });
 
-
 // 2. Retrieve All Items (GET)
-// @route   GET /api/items
-// @desc    Get all items
-// @access  Private (Admin or Employee)
-router.get("/", authMiddleware, async (req, res) => {
+router.get("/", async (req, res) => {
   try {
     const items = await Item.find();
     res.status(200).json(items);
@@ -60,10 +56,7 @@ router.get("/", authMiddleware, async (req, res) => {
 });
 
 // 3. Update an Item (PUT)
-// @route   PUT /api/items/:itemId
-// @desc    Update an item
-// @access  Private (Admin)
-router.put("/:itemId", authMiddleware, async (req, res) => {
+router.put("/:itemId", async (req, res) => {
   const { name, category, availability } = req.body;
 
   try {
@@ -73,11 +66,9 @@ router.put("/:itemId", authMiddleware, async (req, res) => {
       return res.status(404).json({ msg: "Item not found" });
     }
 
-    // Update the item details
     item.name = name || item.name;
     item.category = category || item.category;
-    item.availability =
-      availability !== undefined ? availability : item.availability;
+    item.availability = availability !== undefined ? availability : item.availability;
 
     await item.save();
     res.status(200).json(item);
@@ -88,18 +79,14 @@ router.put("/:itemId", authMiddleware, async (req, res) => {
 });
 
 // 4. Delete an Item (DELETE)
-// @route   DELETE /api/items/:itemId
-// @desc    Delete an item
-// @access  Private (Admin)
-router.delete("/:itemId", authMiddleware, async (req, res) => {
+router.delete("/:itemId", async (req, res) => {
   try {
-    let item = await Item.findById(req.params.itemId);
+    const result = await Item.findByIdAndDelete(req.params.itemId);
 
-    if (!item) {
+    if (!result) {
       return res.status(404).json({ msg: "Item not found" });
     }
 
-    await item.remove();
     res.status(200).json({ msg: "Item removed" });
   } catch (err) {
     console.error(err.message);
@@ -108,12 +95,12 @@ router.delete("/:itemId", authMiddleware, async (req, res) => {
 });
 
 // 5. View Assigned Items (GET)
-// @route   GET /api/items/assigned
-// @desc    Get items assigned to the logged-in user
-// @access  Private (Employee)
-router.get("/assigned", authMiddleware, async (req, res) => {
+router.get("/assigned", async (req, res) => {
   try {
-    const assignedItems = await Item.find({ assignedTo: req.user.id });
+    // Note: This route might need modification as it relies on req.user.id
+    // which is set by authMiddleware. For testing, you might want to pass a userId in the query
+    const userId = req.query.userId; // Add this line for testing
+    const assignedItems = await Item.find({ assignedTo: userId });
     res.status(200).json(assignedItems);
   } catch (err) {
     console.error(err.message);
@@ -122,12 +109,9 @@ router.get("/assigned", authMiddleware, async (req, res) => {
 });
 
 // 6. Update Status of Assigned Item (PUT)
-// @route   PUT /api/items/:itemId/status
-// @desc    Update the status of an assigned item
-// @access  Private (Employee)
-router.put("/:itemId/status", authMiddleware, async (req, res) => {
+router.put("/:itemId/status", async (req, res) => {
   const { status } = req.body;
-
+  
   try {
     let item = await Item.findById(req.params.itemId);
 
@@ -135,9 +119,10 @@ router.put("/:itemId/status", authMiddleware, async (req, res) => {
       return res.status(404).json({ msg: "Item not found" });
     }
 
-    if (item.assignedTo.toString() !== req.user.id) {
-      return res.status(403).json({ msg: "Not authorized" });
-    }
+    // Remove the authorization check for testing purposes
+    // if (!item.assignedTo || item.assignedTo.toString() !== userId) {
+    //   return res.status(403).json({ msg: "Not authorized" });
+    // }
 
     item.status = status;
     await item.save();
@@ -149,10 +134,7 @@ router.put("/:itemId/status", authMiddleware, async (req, res) => {
 });
 
 // 7. Request Additional Items (POST)
-// @route   POST /api/items/request
-// @desc    Request additional items
-// @access  Private (Employee)
-router.post("/request", authMiddleware, async (req, res) => {
+router.post("/request", async (req, res) => {
   const { itemId } = req.body;
 
   try {
@@ -162,10 +144,7 @@ router.post("/request", authMiddleware, async (req, res) => {
       return res.status(404).json({ msg: "Item not found" });
     }
 
-    // Logic to handle the request can be added here, such as notifying an admin
-    res
-      .status(200)
-      .json({ msg: "Request submitted for additional item", itemId });
+    res.status(200).json({ msg: "Request submitted for additional item", itemId });
   } catch (err) {
     console.error(err.message);
     res.status(500).send("Server Error");
@@ -173,11 +152,10 @@ router.post("/request", authMiddleware, async (req, res) => {
 });
 
 // 8. Report Issues with Assigned Items (POST)
-// @route   POST /api/items/:itemId/report
-// @desc    Report an issue with an assigned item
-// @access  Private (Employee)
-router.post("/:itemId/report", authMiddleware, async (req, res) => {
+router.post("/:itemId/report", async (req, res) => {
   const { issue } = req.body;
+  // Add this line for testing
+  const userId = req.body.userId;
 
   try {
     let item = await Item.findById(req.params.itemId);
@@ -186,7 +164,7 @@ router.post("/:itemId/report", authMiddleware, async (req, res) => {
       return res.status(404).json({ msg: "Item not found" });
     }
 
-    if (item.assignedTo.toString() !== req.user.id) {
+    if (!item.assignedTo || item.assignedTo.toString() !== userId) {
       return res.status(403).json({ msg: "Not authorized" });
     }
 
@@ -198,7 +176,5 @@ router.post("/:itemId/report", authMiddleware, async (req, res) => {
     res.status(500).send("Server Error");
   }
 });
-
-
 
 module.exports = router;

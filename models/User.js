@@ -50,5 +50,20 @@ UserSchema.pre("save", async function (next) {
   next();
 });
 
+// Add this method to the UserSchema
+UserSchema.methods.comparePassword = async function(candidatePassword) {
+  try {
+    console.log("Comparing passwords:");
+    console.log("Candidate password:", candidatePassword);
+    console.log("Stored hashed password:", this.password);
+    const isMatch = await bcrypt.compare(candidatePassword, this.password);
+    console.log("bcrypt.compare result:", isMatch);
+    return isMatch;
+  } catch (error) {
+    console.error("Error comparing passwords:", error);
+    return false;
+  }
+};
+
 // Export the User model
 module.exports = mongoose.model("User", UserSchema);
