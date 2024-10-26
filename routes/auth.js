@@ -5,6 +5,7 @@ const User = require("../models/User"); // Import the User model
 const authMiddleware = require("../middleware/authMiddleware");
 const router = express.Router();
 
+// Protected route example - requires valid JWT token
 router.get("/items", authMiddleware, (req, res) => {
   try {
     // Logic for handling the request
@@ -17,25 +18,25 @@ router.get("/items", authMiddleware, (req, res) => {
 
 
 
-// Registration Route
+// User Registration Route
 router.post("/register", async (req, res) => {
   try {
     const { username, email, password, role } = req.body;
 
-    // Validate input
+    // Validate required fields
     if (!username || !email || !password) {
-      return res
-        .status(400)
-        .json({ message: "Please provide username, email, and password" });
+      return res.status(400).json({ 
+        message: "Please provide username, email, and password" 
+      });
     }
 
-    // Check if the user already exists
+    // Check for existing user
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: "User already exists" });
     }
 
-    // Create the user (password will be hashed by the pre-save hook)
+    // Create new user (password hashed by pre-save hook)
     const newUser = new User({
       username,
       email,
@@ -46,14 +47,30 @@ router.post("/register", async (req, res) => {
     await newUser.save();
     console.log("New user saved:", newUser);
 
-    // Generate JWT Token
+    // Generate JWT Token for immediate login
     const token = jwt.sign(
-      { id: newUser._id, role: newUser.role },
+      { 
+        id: newUser._id, 
+        role: newUser.role,
+        email: newUser.email,
+        username: newUser.username 
+      },
       process.env.JWT_SECRET,
-      { expiresIn: "1h" }
+      { expiresIn: "24h" }
     );
 
-    res.status(201).json({ message: "User registered successfully", token });
+    // Return success response with token and user data
+    res.status(201).json({
+      message: "User registered successfully",
+      token: `Bearer ${token}`,
+      user: {
+        id: newUser._id,
+        username: newUser.username,
+        email: newUser.email,
+        role: newUser.role
+      },
+      expiresIn: 86400
+    });
   } catch (error) {
     console.error("Error during registration:", error);
     res.status(500).json({ message: "Server error" });
@@ -94,12 +111,30 @@ router.post("/login", async (req, res) => {
 
     // Generate JWT Token
     const token = jwt.sign(
-      { id: user._id, role: user.role },
+      { 
+        id: user._id, 
+        role: user.role,
+        email: user.email,
+        username: user.username 
+      },
       process.env.JWT_SECRET,
-      { expiresIn: "1h" }
+      { 
+        expiresIn: "24h" // Increased token expiry to 24 hours
+      }
     );
 
-    res.status(200).json({ message: "Logged in successfully", token });
+    // Return more comprehensive response
+    res.status(200).json({
+      message: "Logged in successfully",
+      token: `Bearer ${token}`,
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        role: user.role
+      },
+      expiresIn: 86400 // 24 hours in seconds
+    });
   } catch (error) {
     console.error("Error during login:", error);
     res.status(500).json({ message: "Server error" });
@@ -123,6 +158,37 @@ router.post("/check-user", async (req, res) => {
   } catch (error) {
     console.error("Error checking user:", error);
     res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Token Refresh Route - generates new token for valid users
+router.post("/refresh-token", authMiddleware, async (req, res) => {
+  try {
+    // Find user by ID from token
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Generate new token
+    const token = jwt.sign(
+      { 
+        id: user._id, 
+        role: user.role,
+        email: user.email,
+        username: user.username 
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "24h" }
+    );
+
+    // Return new token
+    res.json({
+      token: `Bearer ${token}`,
+      expiresIn: 86400
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Error refreshing token" });
   }
 });
 

@@ -1,28 +1,32 @@
 const jwt = require("jsonwebtoken");
 
-// Middleware function to verify JWT
+/**
+ * Middleware to verify JWT tokens and protect routes
+ * This middleware:
+ * 1. Extracts the JWT from the Authorization header
+ * 2. Verifies the token is valid
+ * 3. Adds the decoded user information to the request object
+ */
 const authMiddleware = (req, res, next) => {
-  // Get token from headers
-  const token = req.header("Authorization");
+  // Get token from request headers
+  const authHeader = req.header("Authorization");
 
-  // Check if token exists
-  if (!token) {
-    return res
-      .status(401)
-      .json({ message: "Access denied. No token provided." });
+  // Verify Authorization header exists and has correct format
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ message: "Access denied. No token provided." });
   }
 
+  // Remove 'Bearer ' prefix to get just the token
+  const token = authHeader.split(' ')[1];
+
   try {
-    // Verify token with the JWT secret key
+    // Verify token and decode payload
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    // Attach the user object from the token to the request
+    
+    // Add decoded user data to request object for use in route handlers
     req.user = decoded;
-
-    // Move to the next middleware or route handler
     next();
   } catch (err) {
-    // If token is not valid, respond with an error
     return res.status(401).json({ message: "Invalid token." });
   }
 };
