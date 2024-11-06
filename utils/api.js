@@ -47,6 +47,7 @@ class ApiService {
   // Logout user and clear auth data
   static async logout() {
     TokenManager.clearAuth();
+    window.location.href = '/index.html';
   }
 
   // Get all items (protected route)
@@ -60,6 +61,32 @@ class ApiService {
       method: 'POST',
       body: JSON.stringify(itemData)
     });
+  }
+
+  // Register new user
+  static async register(userData) {
+    const response = await this.request('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(userData)
+    });
+
+    // Store auth data on successful registration
+    TokenManager.setToken(response.token);
+    TokenManager.setUser(response.user);
+    return response;
+  }
+
+  // Assign item to employee
+  static async assignItem(itemId, userId) {
+    return this.request(`/items/${itemId}/assign`, {
+      method: 'POST',
+      body: JSON.stringify({ userId })
+    });
+  }
+
+  // Get all employees
+  static async getEmployees() {
+    return this.request('/auth/employees');
   }
 }
 

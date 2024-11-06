@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asset Management - Request Item</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="min-h-screen">
+        <!-- Navigation -->
+        <nav class="bg-indigo-600">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex items-center justify-between h-16">
+                    <div class="flex items-center">
+                        <div class="text-white font-bold text-xl">Asset Management</div>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <a href="dashboard.html" class="text-white hover:bg-indigo-500 px-3 py-2 rounded-md text-sm font-medium">
+                            Dashboard
+                        </a>
+                        <button id="logoutBtn" class="text-white hover:bg-indigo-500 px-3 py-2 rounded-md text-sm font-medium">
+                            Logout
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+            <div class="px-4 py-6 sm:px-0">
+                <div class="bg-white shadow rounded-lg p-6">
+                    <h2 class="text-2xl font-bold mb-6">Request Item</h2>
+                    <form id="requestForm" class="space-y-6">
+                        <div>
+                            <label for="itemCategory" class="block text-sm font-medium text-gray-700">Item Category</label>
+                            <select id="itemCategory" required class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                                <option value="">Select Category</option>
+                                <option value="laptop">Laptop</option>
+                                <option value="desktop">Desktop</option>
+                                <option value="monitor">Monitor</option>
+                                <option value="peripheral">Peripheral</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="requestReason" class="block text-sm font-medium text-gray-700">Reason for Request</label>
+                            <textarea id="requestReason" required rows="4" class="mt-1 block w-full shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm border border-gray-300 rounded-md"></textarea>
+                        </div>
+                        <div>
+                            <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                Submit Request
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="../js/request.js"></script>
+</body>
+</html> 

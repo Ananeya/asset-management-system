@@ -3,6 +3,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User"); // Import the User model
 const authMiddleware = require("../middleware/authMiddleware");
+const roleMiddleware = require("../middleware/roleMiddleware");
 const router = express.Router();
 
 // Protected route example - requires valid JWT token
@@ -21,12 +22,26 @@ router.get("/items", authMiddleware, (req, res) => {
 // User Registration Route
 router.post("/register", async (req, res) => {
   try {
-    const { username, email, password, role } = req.body;
+    const { username, email, password, confirmPassword, role } = req.body;
 
     // Validate required fields
-    if (!username || !email || !password) {
+    if (!username || !email || !password || !confirmPassword || !role) {
       return res.status(400).json({ 
-        message: "Please provide username, email, and password" 
+        message: "Please provide all required fields" 
+      });
+    }
+
+    // Validate role value
+    if (!["employee", "storekeeper"].includes(role)) {
+      return res.status(400).json({ 
+        message: "Invalid role. Must be either 'employee' or 'storekeeper'" 
+      });
+    }
+
+    // Check if passwords match
+    if (password !== confirmPassword) {
+      return res.status(400).json({ 
+        message: "Passwords do not match" 
       });
     }
 
@@ -84,29 +99,25 @@ router.post("/login", async (req, res) => {
 
     // Validate input
     if (!email || !password) {
-      return res
-        .status(400)
-        .json({ message: "Please provide email and password" });
+      return res.status(400).json({ 
+        message: "Email and password are required" 
+      });
     }
 
     // Check if the user exists
     const user = await User.findOne({ email });
     if (!user) {
-      console.log(`User not found for email: ${email}`);
-      return res.status(400).json({ message: "Invalid credentials" });
+      return res.status(401).json({ 
+        message: "Invalid email or password" 
+      });
     }
 
-    console.log("User found:", user);
-    console.log("Provided password:", password);
-    console.log("Stored hashed password:", user.password);
-
-    // Check if the password matches using the comparePassword method
+    // Check password
     const isMatch = await user.comparePassword(password);
-    console.log("Password match result:", isMatch);
-
     if (!isMatch) {
-      console.log(`Password does not match for user: ${email}`);
-      return res.status(400).json({ message: "Invalid credentials" });
+      return res.status(401).json({ 
+        message: "Invalid email or password" 
+      });
     }
 
     // Generate JWT Token
@@ -118,14 +129,11 @@ router.post("/login", async (req, res) => {
         username: user.username 
       },
       process.env.JWT_SECRET,
-      { 
-        expiresIn: "24h" // Increased token expiry to 24 hours
-      }
+      { expiresIn: "24h" }
     );
 
-    // Return more comprehensive response
     res.status(200).json({
-      message: "Logged in successfully",
+      message: "Login successful",
       token: `Bearer ${token}`,
       user: {
         id: user._id,
@@ -133,11 +141,13 @@ router.post("/login", async (req, res) => {
         email: user.email,
         role: user.role
       },
-      expiresIn: 86400 // 24 hours in seconds
+      expiresIn: 86400
     });
-  } catch (error) {
-    console.error("Error during login:", error);
-    res.status(500).json({ message: "Server error" });
+  } catch (err) {
+    console.error('Login error:', err);
+    res.status(500).json({ 
+      message: "An unexpected error occurred during login" 
+    });
   }
 });
 
@@ -189,6 +199,17 @@ router.post("/refresh-token", authMiddleware, async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ message: "Error refreshing token" });
+  }
+});
+
+// Get all employees
+router.get("/employees", authMiddleware, roleMiddleware(['storekeeper']), async (req, res) => {
+  try {
+    const employees = await User.find({ role: 'employee' }, 'username _id');
+    res.json(employees);
+  } catch (error) {
+    console.error('Error fetching employees:', error);
+    res.status(500).json({ message: 'Error fetching employees' });
   }
 });
 

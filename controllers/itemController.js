@@ -77,17 +77,34 @@ const itemController = {
   // 1. Search Items Function
   // Search for items based on name or category
   searchItems: async (req, res) => {
-    const { query } = req.query; // Get the search query from the request
+    const { query } = req.query;
+    
     try {
+      if (!query) {
+        return res.status(400).json({
+          message: "Search query is required"
+        });
+      }
+
       const items = await Item.find({
         $or: [
-          { name: { $regex: query, $options: 'i' } }, // Case-insensitive match
+          { name: { $regex: query, $options: 'i' } },
           { category: { $regex: query, $options: 'i' } },
         ],
       });
-      res.status(200).json(items); // Return the found items
-    } catch (error) {
-      res.status(500).json({ message: 'Error searching items', error: error.message });
+
+      if (items.length === 0) {
+        return res.status(404).json({
+          message: "No items found matching your search criteria"
+        });
+      }
+
+      res.status(200).json(items);
+    } catch (err) {
+      console.error('Search error:', err);
+      res.status(500).json({ 
+        message: "An unexpected error occurred while searching items" 
+      });
     }
   },
 
@@ -165,9 +182,17 @@ const itemController = {
       const { issue } = req.body;
       const userId = req.user.id;
 
+      if (!issue) {
+        return res.status(400).json({
+          message: "Issue description is required"
+        });
+      }
+
       const item = await Item.findById(itemId);
       if (!item) {
-        return res.status(404).json({ message: 'Item not found' });
+        return res.status(404).json({
+          message: "Item not found"
+        });
       }
 
       item.issueReports.push({
@@ -177,9 +202,20 @@ const itemController = {
       });
 
       await item.save();
-      res.status(200).json(item);
+      res.status(200).json({
+        message: "Issue reported successfully",
+        item
+      });
     } catch (err) {
-      res.status(500).json({ message: 'Error reporting issue', error: err.message });
+      if (err.name === 'CastError') {
+        return res.status(400).json({
+          message: "Invalid item ID format"
+        });
+      }
+      console.error('Error reporting issue:', err);
+      res.status(500).json({
+        message: "An unexpected error occurred while reporting the issue"
+      });
     }
   },
 
